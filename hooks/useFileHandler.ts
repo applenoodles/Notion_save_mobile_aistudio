@@ -7,7 +7,7 @@ import { useState, useCallback } from "react";
 
 const uploadFile = async (file: File): Promise<string | null> => {
     try {
-        const response = await fetch(`/api/upload?filename=${encodeURIComponent(file.name)}`, {
+        const response = await fetch(`/api/uploadFile?filename=${encodeURIComponent(file.name)}`, {
             method: 'POST',
             body: file,
         });
