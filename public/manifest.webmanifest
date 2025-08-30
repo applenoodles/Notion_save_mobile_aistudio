@@ -29,16 +29,7 @@
       "files": [
         {
           "name": "files",
-          "accept": [
-            "text/plain",
-            "text/markdown",
-            "image/png",
-            "image/jpeg",
-            "application/pdf",
-            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
-            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
-          ]
+          "accept": ["image/*", "application/pdf", "text/*"]
         }
       ]
     }
