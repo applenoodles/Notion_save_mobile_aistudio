@@ -1,4 +1,5 @@
 
+// Re-triggering deployment to apply new environment variables.
 import { put } from '@vercel/blob';
 import type { VercelRequest, VercelResponse } from '@vercel/node';
 
