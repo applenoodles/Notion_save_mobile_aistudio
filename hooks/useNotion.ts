@@ -4,7 +4,6 @@
  */
 
 import { useCallback } from "react";
-// Fix: Import DatabaseConnection to correctly type the 'connection' parameter.
 import { DatabaseSchema, ProcessedContentData, Settings, DatabaseConnection } from "../types";
 import { AppDispatch } from "../state/appReducer";
 import { CORS_PROXY_URL, NOTION_API_VERSION, handleNotionApiCall } from "../utils/api";
@@ -58,7 +57,7 @@ const buildNotionProperties = (content: ProcessedContentData, schema: DatabaseSc
     return properties;
 }
 
-const buildNotionPageBlocks = (content: ProcessedContentData, originalText: string, originalFiles: File[], filePreviews: string[]) => {
+const buildNotionPageBlocks = (content: ProcessedContentData, originalText: string, originalFiles: File[], publicUrls: (string | null)[]) => {
     const { pageContent } = content;
     const dividerBlock = { object: 'block', type: 'divider', divider: {} };
     const children: any[] = [
@@ -72,10 +71,17 @@ const buildNotionPageBlocks = (content: ProcessedContentData, originalText: stri
     if (originalFiles.length > 0) {
         children.push(dividerBlock, { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ text: { content: 'Original Files' } }] } });
         originalFiles.forEach((file, index) => {
-            if (file.type.startsWith('image/') && filePreviews[index]) {
-                children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url: filePreviews[index] } } });
-            } else {
-                children.push({ object: 'block', type: 'callout', callout: { rich_text: [{ type: 'text', text: { content: `Analyzed file: ${file.name}` } }], icon: { emoji: '📎' } } });
+            const url = publicUrls[index];
+            if (url) { // If upload was successful and we have a public URL
+                if (file.type.startsWith('image/')) {
+                    children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url } } });
+                } else if (file.type === 'application/pdf') {
+                    children.push({ object: 'block', type: 'embed', embed: { url } });
+                } else {
+                    children.push({ object: 'block', type: 'file', file: { type: 'external', external: { url }, name: file.name } });
+                }
+            } else { // Fallback if upload failed
+                children.push({ object: 'block', type: 'callout', callout: { rich_text: [{ type: 'text', text: { content: `Analyzed file (upload failed): ${file.name}` } }], icon: { emoji: '📎' } } });
             }
         });
     }
@@ -104,24 +110,23 @@ export const useNotion = (dispatch: AppDispatch) => {
     }, [dispatch]);
 
     const uploadToNotion = useCallback(async (
-        // Fix: Use Pick<DatabaseConnection, ...> instead of Pick<Settings, ...> as connection details are not top-level settings.
         connection: Pick<DatabaseConnection, 'notionApiKey' | 'notionDatabaseId'>,
         processedContent: ProcessedContentData,
         databaseSchema: DatabaseSchema,
         inputText: string, 
         inputFiles: File[], 
-        filePreviews: string[]
+        publicUrls: (string | null)[] // Accept the public URLs
     ) => {
         dispatch({ type: 'SET_STATUS', payload: 'uploadingNotion' });
 
         try {
             const properties = buildNotionProperties(processedContent, databaseSchema);
-            const children = buildNotionPageBlocks(processedContent, inputText, inputFiles, filePreviews);
+            const children = buildNotionPageBlocks(processedContent, inputText, inputFiles, publicUrls);
 
             const data = await handleNotionApiCall(`${CORS_PROXY_URL}https://api.notion.com/v1/pages`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${connection.notionApiKey}`, 'Notion-Version': NOTION_API_VERSION, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ parent: { database_id: connection.notionDatabaseId }, properties, children }),
+                body: JSON.stringify({ parent: { database_id: connection.nionDatabaseId }, properties, children }),
             });
             
             dispatch({ type: 'SET_SUCCESS', payload: `Page created! View it here: ${data.url.replace("https://www.", "notion://")}` });

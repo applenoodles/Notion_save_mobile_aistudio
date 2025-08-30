@@ -70,7 +70,7 @@ export const ContentInputPage = () => {
 
     const handleUpload = async () => {
         if (!processedContent || !activeConnection || !activeDatabaseSchema) return;
-        await notion.uploadToNotion(activeConnection, processedContent, activeDatabaseSchema, fileHandler.inputText, fileHandler.inputFiles, fileHandler.filePreviews);
+        await notion.uploadToNotion(activeConnection, processedContent, activeDatabaseSchema, fileHandler.inputText, fileHandler.inputFiles, fileHandler.publicUrls);
         if (!appState.error) {
             fileHandler.resetFiles();
             setProcessedContent(null);
