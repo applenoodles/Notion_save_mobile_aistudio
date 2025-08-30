@@ -1,0 +1,5 @@
+{
+  "name": "IntellectaNote for Notion",
+  "description": "An application to intelligently process text with AI and save structured notes to Notion.",
+  "requestFramePermissions": []
+}
