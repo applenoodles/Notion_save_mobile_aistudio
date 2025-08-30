@@ -1,40 +1,35 @@
 
 import { put } from '@vercel/blob';
-import type { NextRequest } from 'next/server';
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-// Vercel Edge Functions are fast and efficient for tasks like this.
-export const config = {
-  runtime: 'edge',
-};
+// This function will now run in the default Vercel Node.js runtime.
+export default async function handler(
+  request: VercelRequest,
+  response: VercelResponse,
+) {
+  // Ensure the request is a POST request.
+  if (request.method !== 'POST') {
+    return response.status(405).json({ error: 'Method Not Allowed' });
+  }
 
-// The handler function for the /api/upload endpoint.
-export default async function upload(request: NextRequest) {
   // The filename is passed as a query parameter.
-  const filename = request.nextUrl.searchParams.get('filename');
+  const filename = request.query.filename as string;
 
-  // Ensure the request body and filename are present.
-  if (!filename || !request.body) {
-    return new Response('Bad Request: Missing filename or request body.', {
-      status: 400,
-    });
+  if (!filename) {
+    return response.status(400).json({ error: 'Missing filename query parameter' });
   }
 
   try {
-    // Upload the file to Vercel Blob.
-    // The request.body is a readable stream of the file's contents.
-    const blob = await put(filename, request.body, {
-      access: 'public', // Make the file publicly accessible.
+    // The request object itself is a stream in the Node.js runtime.
+    // We pass it directly to the `put` function.
+    const blob = await put(filename, request, {
+      access: 'public',
     });
 
     // Respond with the blob object, which includes the public URL.
-    return new Response(JSON.stringify(blob), {
-      headers: { 'Content-Type': 'application/json' },
-      status: 200,
-    });
-  } catch (error) {
+    return response.status(200).json(blob);
+  } catch (error: any) {
     console.error('Error uploading to Vercel Blob:', error);
-    return new Response('Internal Server Error: Failed to upload file.', {
-      status: 500,
-    });
+    return response.status(500).json({ error: `Internal Server Error: ${error.message}` });
   }
 }
