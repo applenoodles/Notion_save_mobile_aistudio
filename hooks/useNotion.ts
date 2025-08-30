@@ -126,7 +126,7 @@ export const useNotion = (dispatch: AppDispatch) => {
             const data = await handleNotionApiCall(`${CORS_PROXY_URL}https://api.notion.com/v1/pages`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${connection.notionApiKey}`, 'Notion-Version': NOTION_API_VERSION, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ parent: { database_id: connection.nionDatabaseId }, properties, children }),
+                body: JSON.stringify({ parent: { database_id: connection.notionDatabaseId }, properties, children }),
             });
             
             dispatch({ type: 'SET_SUCCESS', payload: `Page created! View it here: ${data.url.replace("https://www.", "notion://")}` });
