@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 const uploadFile = async (file: File): Promise<string | null> => {
     try {
@@ -42,7 +42,6 @@ export const useFileHandler = () => {
         setPublicUrls(prev => [...prev, ...newFiles.map(() => null)]);
 
         // Upload files and update URLs one by one
-        // This allows the UI to be responsive while files upload in the background
         const uploadPromises = newFiles.map(file => uploadFile(file));
         const settledUrls = await Promise.all(uploadPromises);
 
@@ -59,6 +58,26 @@ export const useFileHandler = () => {
         });
 
     }, []);
+
+    // Effect to listen for shared files from the service worker
+    useEffect(() => {
+        const handleServiceWorkerMessage = (event: MessageEvent) => {
+            if (event.data && event.data.type === 'shared-files') {
+                const files = event.data.files as File[];
+                if (files && files.length > 0) {
+                    console.log('Received shared files from Service Worker:', files);
+                    handleAddFiles(files);
+                }
+            }
+        };
+
+        navigator.serviceWorker.addEventListener('message', handleServiceWorkerMessage);
+
+        // Cleanup
+        return () => {
+            navigator.serviceWorker.removeEventListener('message', handleServiceWorkerMessage);
+        };
+    }, [handleAddFiles]);
 
     const handleRemoveFile = useCallback((indexToRemove: number) => {
         const previewUrl = filePreviews[indexToRemove];
