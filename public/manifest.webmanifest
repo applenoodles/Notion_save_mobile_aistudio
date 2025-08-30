@@ -6,6 +6,7 @@
   "display": "standalone",
   "background_color": "#ffffff",
   "theme_color": "#000000",
+  "orientation": "portrait",
   "icons": [
     {
       "src": "/icon-192x192.png",
@@ -16,6 +17,22 @@
       "src": "/icon-512x512.png",
       "sizes": "512x512",
       "type": "image/png"
+    }
+  ],
+  "screenshots": [
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "wide",
+      "label": "Intellectual Notion Save"
+    },
+    {
+      "src": "/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "form_factor": "narrow",
+      "label": "Intellectual Notion Save"
     }
   ],
   "share_target": {
@@ -29,7 +46,16 @@
       "files": [
         {
           "name": "files",
-          "accept": ["image/*", "application/pdf", "text/*"]
+          "accept": [
+            "text/plain",
+            "text/markdown",
+            "image/png",
+            "image/jpeg",
+            "application/pdf",
+            "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+            "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            "application/vnd.openxmlformats-officedocument.presentationml.presentation"
+          ]
         }
       ]
     }
