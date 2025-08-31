@@ -18,7 +18,7 @@ export const App = () => {
   const renderCurrentPage = () => {
     // The NavigationMenu already prevents access to locked pages.
     // This is a fallback to ensure users can't access pages before connecting.
-    if (currentPage !== 'settings' && !isConnected) {
+    if (currentPage !== 'settings' && currentPage !== 'content-input' && !isConnected) {
         return <SettingsPage />;
     }
 
