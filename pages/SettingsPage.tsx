@@ -60,7 +60,12 @@ export const SettingsPage = () => {
                         <input type="text" id="new-db-name" value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="e.g., My Work Notes" required />
                     </div>
                     <div className="form-group">
-                        <label htmlFor="notion-api-key">Notion API Key</label>
+                        <label htmlFor="notion-api-key">
+                            Notion API Key 
+                            <a href="https://www.notion.so/profile/integrations/" target="_blank" rel="noopener noreferrer" style={{ fontSize: '0.8rem', marginLeft: '8px' }}>
+                                (Get Key Here)
+                            </a>
+                        </label>
                         <input type="password" id="notion-api-key" value={newApiKey} onChange={(e) => setNewApiKey(e.target.value)} placeholder="e.g., secret_..." required />
                     </div>
                     <div className="form-group">
