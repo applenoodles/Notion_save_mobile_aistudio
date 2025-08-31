@@ -13,16 +13,15 @@ import { useAppContext } from "./state/AppContext";
 export type Page = 'settings' | 'system-prompt' | 'content-input';
 
 export const App = () => {
-  const { currentPage, setCurrentPage, isConnected, appState } = useAppContext();
+  const { appState, setCurrentPage, isConnected } = useAppContext();
 
   const renderCurrentPage = () => {
-    // The NavigationMenu already prevents access to locked pages.
     // This is a fallback to ensure users can't access pages before connecting.
-    if (currentPage !== 'settings' && currentPage !== 'content-input' && !isConnected) {
+    if (appState.currentPage !== 'settings' && appState.currentPage !== 'content-input' && !isConnected) {
         return <SettingsPage />;
     }
 
-    switch(currentPage) {
+    switch(appState.currentPage) {
         case 'settings':
             return <SettingsPage />;
         case 'system-prompt':
@@ -37,7 +36,7 @@ export const App = () => {
   return (
     <>
       <NavigationMenu 
-        currentPage={currentPage} 
+        currentPage={appState.currentPage} 
         setCurrentPage={setCurrentPage}
         isConnectionReady={isConnected}
       />
