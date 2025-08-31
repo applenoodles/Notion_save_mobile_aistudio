@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from 'react';
+import React, { createContext, useContext, useReducer, useState, useCallback, useEffect, useMemo } from 'react';
 import { appStateReducer, initialState, AppState, AppDispatch } from "../state/appReducer";
 import { useSettings } from '../hooks/useSettings';
 import { useNotion } from "../hooks/useNotion";
