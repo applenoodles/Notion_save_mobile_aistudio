@@ -32,6 +32,7 @@ export type AppAction =
   | { type: 'SET_CURRENT_PAGE'; payload: Page }
   | { type: 'SET_INPUT_TEXT'; payload: string }
   | { type: 'ADD_FILES'; payload: { files: File[], previews: string[], urls: (string | null)[] } }
+  | { type: 'UPDATE_UPLOADED_URLS'; payload: { startIndex: number; urls: (string | null)[] } }
   | { type: 'REMOVE_FILE'; payload: number }
   | { type: 'SET_PROCESSED_CONTENT'; payload: ProcessedContentData | null }
   | { type: 'RESET_INPUT' };
@@ -69,8 +70,16 @@ export const appStateReducer = (state: AppState, action: AppAction): AppState =>
         filePreviews: [...state.filePreviews, ...action.payload.previews],
         publicUrls: [...state.publicUrls, ...action.payload.urls],
       };
+    case 'UPDATE_UPLOADED_URLS':
+      const newUrls = [...state.publicUrls];
+      action.payload.urls.forEach((url, index) => {
+        const targetIndex = action.payload.startIndex + index;
+        if (targetIndex < newUrls.length) {
+          newUrls[targetIndex] = url;
+        }
+      });
+      return { ...state, publicUrls: newUrls };
     case 'REMOVE_FILE':
-      // Also revoke object URL for image previews to prevent memory leaks
       const previewUrl = state.filePreviews[action.payload];
       if (previewUrl && previewUrl.startsWith('blob:')) {
           URL.revokeObjectURL(previewUrl);
@@ -84,7 +93,6 @@ export const appStateReducer = (state: AppState, action: AppAction): AppState =>
     case 'SET_PROCESSED_CONTENT':
       return { ...state, processedContent: action.payload };
     case 'RESET_INPUT':
-      // Revoke all object URLs before clearing
       state.filePreviews.forEach(url => {
         if (url && url.startsWith('blob:')) {
             URL.revokeObjectURL(url);

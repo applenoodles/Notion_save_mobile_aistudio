@@ -68,26 +68,22 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
     // --- Action Dispatchers ---
     const setCurrentPage = useCallback((page: Page) => dispatch({ type: 'SET_CURRENT_PAGE', payload: page }), []);
     const setInputText = useCallback((text: string) => dispatch({ type: 'SET_INPUT_TEXT', payload: text }), []);
-    const setProcessedContent = useCallback((content: ProcessedContentData | null) => dispatch({ type: 'SET_PROCESSED_CONTENT', payload }), []);
+    const setProcessedContent = useCallback((content: ProcessedContentData | null) => dispatch({ type: 'SET_PROCESSED_CONTENT', payload: content }), []);
     const handleRemoveFile = useCallback((index: number) => dispatch({ type: 'REMOVE_FILE', payload: index }), []);
     const resetInput = useCallback(() => dispatch({ type: 'RESET_INPUT' }), []);
 
     const handleAddFiles = useCallback(async (newFiles: File[]) => {
+        const startIndex = appState.inputFiles.length;
         const previews = newFiles.map(file => file.type.startsWith('image/') ? URL.createObjectURL(file) : '');
         const placeholderUrls = newFiles.map(() => null);
         
-        // Dispatch immediately with placeholders for UI responsiveness
         dispatch({ type: 'ADD_FILES', payload: { files: newFiles, previews, urls: placeholderUrls } });
 
-        const uploadPromises = newFiles.map(file => uploadFile(file));
-        const settledUrls = await Promise.all(uploadPromises);
+        const settledUrls = await Promise.all(newFiles.map(file => uploadFile(file)));
 
-        // Dispatch again with the real URLs
-        // Note: This is a simplified approach. A more robust solution for large numbers of files
-        // might involve updating URLs individually as they complete.
-        dispatch({ type: 'ADD_FILES', payload: { files: [], previews: [], urls: settledUrls } });
+        dispatch({ type: 'UPDATE_UPLOADED_URLS', payload: { startIndex, urls: settledUrls } });
 
-    }, []);
+    }, [appState.inputFiles.length]);
 
     const handleClearSettings = () => {
         clearSettings();
