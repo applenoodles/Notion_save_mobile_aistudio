@@ -28,15 +28,14 @@ export const OutputPreview = memo(({ processedContent, setProcessedContent, file
     const pageContent = processedContent.pageContent || { summaryTitle: '', summaryBody: '', takeaways: [] };
 
     const handleFieldChange = (key: string, value: any) => {
-        setProcessedContent(prev => prev ? { ...prev, [key]: value } : null);
+        const newContent = { ...processedContent, [key]: value };
+        setProcessedContent(newContent);
     };
 
     const handlePageContentChange = (key: keyof PageContent, value: any) => {
-        setProcessedContent(prev => {
-            if (!prev) return null;
-            const currentContent = prev.pageContent || { summaryTitle: '', summaryBody: '', takeaways: [] };
-            return { ...prev, pageContent: { ...currentContent, [key]: value } };
-        });
+        const currentContent = processedContent.pageContent || { summaryTitle: '', summaryBody: '', takeaways: [] };
+        const newContent = { ...processedContent, pageContent: { ...currentContent, [key]: value } };
+        setProcessedContent(newContent);
     };
 
     const handleTakeawayChange = (index: number, newValue: string) => {
