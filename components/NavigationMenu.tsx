@@ -35,7 +35,7 @@ export const NavigationMenu = ({ currentPage, setCurrentPage, isConnectionReady 
     const menuItems: { id: Page; label: string; unlocked: boolean }[] = [
         { id: 'settings', label: '設定 & 連線', unlocked: true },
         { id: 'system-prompt', label: 'System Prompt 設定', unlocked: isConnectionReady },
-        { id: 'content-input', label: '新增內容與處理', unlocked: isConnectionReady }
+        { id: 'content-input', label: '新增內容與處理', unlocked: true }
     ];
 
     return (
