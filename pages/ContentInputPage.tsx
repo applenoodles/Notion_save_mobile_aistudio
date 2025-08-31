@@ -3,20 +3,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React from 'react';
 import { ContentInputCard } from '../components/ContentInputCard';
 import { OutputPreview } from '../components/OutputPreview';
-import type { ProcessedContentData } from '../types';
 import { useAI } from '../hooks/useAI';
-import { useFileHandler } from '../hooks/useFileHandler';
 import { useAppContext } from '../state/AppContext';
 
 export const ContentInputPage = () => {
-    const { appState, dispatch, settings, activeDatabaseSchema, notion, setCurrentPage, setActiveDatabaseId } = useAppContext();
-    const ai = useAI();
-    const fileHandler = useFileHandler();
-    const [processedContent, setProcessedContent] = useState<ProcessedContentData | null>(null);
+    const {
+        appState,
+        dispatch,
+        settings,
+        activeDatabaseSchema,
+        notion,
+        setCurrentPage,
+        setActiveDatabaseId,
+        setInputText,
+        handleAddFiles,
+        handleRemoveFile,
+        setProcessedContent,
+        resetInput,
+    } = useAppContext();
 
+    const ai = useAI();
     const activeConnection = settings.connections.find(c => c.id === settings.activeDatabaseId);
     
     const handleValidationError = (message: string) => {
@@ -31,7 +40,7 @@ export const ContentInputPage = () => {
         dispatch({ type: 'SET_STATUS', payload: 'processingAI' });
         setProcessedContent(null);
         try {
-            const result = await ai.processContent(settings, fileHandler.inputText, fileHandler.inputFiles, activeDatabaseSchema);
+            const result = await ai.processContent(settings, appState.inputText, appState.inputFiles, activeDatabaseSchema);
             const transformedResult = { ...result };
             for (const [key, value] of Object.entries(transformedResult)) {
                 const schemaDetails = activeDatabaseSchema[key];
@@ -48,15 +57,15 @@ export const ContentInputPage = () => {
     };
 
     const handleRefine = async (instruction: string) => {
-        if (!processedContent || !activeDatabaseSchema) return;
+        if (!appState.processedContent || !activeDatabaseSchema) return;
         dispatch({ type: 'SET_STATUS', payload: 'refiningAI' });
         try {
-            const result = await ai.refineContent(settings, fileHandler.inputText, fileHandler.inputFiles, activeDatabaseSchema, processedContent, instruction);
+            const result = await ai.refineContent(settings, appState.inputText, appState.inputFiles, activeDatabaseSchema, appState.processedContent, instruction);
             const transformedResult = { ...result };
             for (const [key, value] of Object.entries(transformedResult)) {
                 const schemaDetails = activeDatabaseSchema[key];
                 if (schemaDetails && schemaDetails.type === 'date' && value === 'NOW') {
-                    transformedResult[key] = (processedContent[key] as string) || new Date().toISOString().split('T')[0];
+                    transformedResult[key] = (appState.processedContent[key] as string) || new Date().toISOString().split('T')[0];
                 }
             }
             setProcessedContent(transformedResult);
@@ -69,34 +78,20 @@ export const ContentInputPage = () => {
     };
 
     const handleUpload = async () => {
-        if (!processedContent || !activeConnection || !activeDatabaseSchema) return;
-        await notion.uploadToNotion(activeConnection, processedContent, activeDatabaseSchema, fileHandler.inputText, fileHandler.inputFiles, fileHandler.publicUrls);
+        if (!appState.processedContent || !activeConnection || !activeDatabaseSchema) return;
+        await notion.uploadToNotion(activeConnection, appState.processedContent, activeDatabaseSchema, appState.inputText, appState.inputFiles, appState.publicUrls);
+        // Check for error state from the reducer after the async operation
         if (!appState.error) {
-            fileHandler.resetFiles();
-            setProcessedContent(null);
+            resetInput();
         }
     };
     
-    if (settings.connections.length === 0) {
-        return (
-             <div className="card">
-                <h2>No Databases Found</h2>
-                <p>Please add a Notion database connection in the settings page before proceeding.</p>
-                 <div className="page-navigation" style={{ justifyContent: 'flex-start', marginTop: '1.5rem' }}>
-                    <button className="secondary-button" onClick={() => setCurrentPage('settings')}>
-                        &larr; Go to Settings
-                    </button>
-                </div>
-            </div>
-        )
-    }
-
     return (
         <>
             <div className="card">
                  <div className="form-group">
                     <label htmlFor="db-selector">
-                        <span className="step-number" style={{ width: '20px', height: '20px', fontSize: '0.7rem' }}>A</span>
+                        <span className="step-number">A</span>
                         Select Target Database
                     </label>
                     <select id="db-selector" value={settings.activeDatabaseId ?? ''} onChange={(e) => setActiveDatabaseId(e.target.value || null)}>
@@ -110,8 +105,8 @@ export const ContentInputPage = () => {
 
             <div className={`card`}>
                  <ContentInputCard
-                    inputText={fileHandler.inputText} setInputText={fileHandler.setInputText}
-                    inputFiles={fileHandler.inputFiles} handleAddFiles={fileHandler.handleAddFiles} handleRemoveFile={fileHandler.handleRemoveFile}
+                    inputText={appState.inputText} setInputText={setInputText}
+                    inputFiles={appState.inputFiles} handleAddFiles={handleAddFiles} handleRemoveFile={handleRemoveFile}
                     onProcess={handleProcess}
                     aiProvider={settings.aiProvider}
                     aiApiKey={settings.aiApiKey}
@@ -120,19 +115,14 @@ export const ContentInputPage = () => {
                 />
             </div>
             
-            {processedContent && activeDatabaseSchema && (
+            {appState.processedContent && activeDatabaseSchema && (
                 <OutputPreview
-                    processedContent={processedContent} setProcessedContent={setProcessedContent}
-                    filePreviews={fileHandler.filePreviews} databaseSchema={activeDatabaseSchema}
+                    processedContent={appState.processedContent} setProcessedContent={setProcessedContent}
+                    filePreviews={appState.filePreviews} databaseSchema={activeDatabaseSchema}
                     onUpload={handleUpload} status={appState.status}
                     onRefine={handleRefine}
                 />
             )}
-            <div className="page-navigation" style={{ justifyContent: 'flex-start', marginTop: processedContent ? '1.5rem' : '1.5rem' }}>
-                <button className="secondary-button" onClick={() => setCurrentPage('system-prompt')}>
-                    &larr; Back to System Prompt
-                </button>
-            </div>
         </>
     );
 };

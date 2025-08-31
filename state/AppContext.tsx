@@ -3,12 +3,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { createContext, useContext, useReducer, useState, useCallback, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useCallback, useEffect, useMemo } from 'react';
 import { appStateReducer, initialState, AppState, AppDispatch } from "../state/appReducer";
 import { useSettings } from '../hooks/useSettings';
 import { useNotion } from "../hooks/useNotion";
-import type { DatabaseSchema, Settings, DatabaseConnection } from '../types';
+import type { DatabaseSchema, Settings, DatabaseConnection, ProcessedContentData } from '../types';
 import type { Page } from '../App';
+
+// Helper function to upload a single file.
+const uploadFile = async (file: File): Promise<string | null> => {
+    try {
+        const response = await fetch(`/api/uploadFile?filename=${encodeURIComponent(file.name)}`, {
+            method: 'POST',
+            body: file,
+        });
+        if (!response.ok) {
+            console.error('Upload failed:', await response.text());
+            return null;
+        }
+        const blob = await response.json();
+        return blob.url;
+    } catch (error) {
+        console.error('Error uploading file:', error);
+        return null;
+    }
+};
 
 type NotionHook = ReturnType<typeof useNotion>;
 
@@ -18,7 +37,6 @@ interface AppContextType {
     settings: Settings;
     activeDatabaseSchema: DatabaseSchema | null;
     isConnected: boolean;
-    currentPage: Page;
 
     // Actions
     dispatch: AppDispatch;
@@ -28,6 +46,11 @@ interface AppContextType {
     updateAiSetting: (key: keyof Settings, value: string) => void;
     handleClearSettings: () => void;
     setCurrentPage: (page: Page) => void;
+    setInputText: (text: string) => void;
+    handleAddFiles: (files: File[]) => Promise<void>;
+    handleRemoveFile: (index: number) => void;
+    setProcessedContent: (content: ProcessedContentData | null) => void;
+    resetInput: () => void;
 
     // Hook results
     notion: NotionHook;
@@ -37,11 +60,41 @@ const AppContext = createContext<AppContextType | null>(null);
 
 export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children }) => {
     const [appState, dispatch] = useReducer(appStateReducer, initialState);
-    const [currentPage, setCurrentPage] = useState<Page>('settings');
     const [activeDatabaseSchema, setActiveDatabaseSchema] = useState<DatabaseSchema | null>(null);
 
     const { settings, addConnection, removeConnection, setActiveDatabaseId, updateAiSetting, clearSettings } = useSettings();
     const notion = useNotion(dispatch);
+
+    // --- Action Dispatchers ---
+    const setCurrentPage = useCallback((page: Page) => dispatch({ type: 'SET_CURRENT_PAGE', payload: page }), []);
+    const setInputText = useCallback((text: string) => dispatch({ type: 'SET_INPUT_TEXT', payload: text }), []);
+    const setProcessedContent = useCallback((content: ProcessedContentData | null) => dispatch({ type: 'SET_PROCESSED_CONTENT', payload }), []);
+    const handleRemoveFile = useCallback((index: number) => dispatch({ type: 'REMOVE_FILE', payload: index }), []);
+    const resetInput = useCallback(() => dispatch({ type: 'RESET_INPUT' }), []);
+
+    const handleAddFiles = useCallback(async (newFiles: File[]) => {
+        const previews = newFiles.map(file => file.type.startsWith('image/') ? URL.createObjectURL(file) : '');
+        const placeholderUrls = newFiles.map(() => null);
+        
+        // Dispatch immediately with placeholders for UI responsiveness
+        dispatch({ type: 'ADD_FILES', payload: { files: newFiles, previews, urls: placeholderUrls } });
+
+        const uploadPromises = newFiles.map(file => uploadFile(file));
+        const settledUrls = await Promise.all(uploadPromises);
+
+        // Dispatch again with the real URLs
+        // Note: This is a simplified approach. A more robust solution for large numbers of files
+        // might involve updating URLs individually as they complete.
+        dispatch({ type: 'ADD_FILES', payload: { files: [], previews: [], urls: settledUrls } });
+
+    }, []);
+
+    const handleClearSettings = () => {
+        clearSettings();
+        setActiveDatabaseSchema(null);
+        setCurrentPage('settings');
+        dispatch({ type: 'RESET_MESSAGES' });
+    };
 
     // Effect to fetch schema when active database changes
     useEffect(() => {
@@ -61,22 +114,13 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
         fetchActiveSchema();
     }, [settings.activeDatabaseId, settings.connections, notion]);
 
+    const isConnected = settings.connections.length > 0 && !!settings.activeDatabaseId;
 
-    const handleClearSettings = () => {
-        clearSettings();
-        setActiveDatabaseSchema(null);
-        setCurrentPage('settings');
-        dispatch({ type: 'RESET' });
-    };
-
-    const isConnected = settings.connections.length > 0;
-
-    const value: AppContextType = {
+    const value: AppContextType = useMemo(() => ({
         appState,
         settings,
         activeDatabaseSchema,
         isConnected,
-        currentPage,
         dispatch,
         addConnection,
         removeConnection,
@@ -84,8 +128,13 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
         updateAiSetting,
         handleClearSettings,
         setCurrentPage,
+        setInputText,
+        handleAddFiles,
+        handleRemoveFile,
+        setProcessedContent,
+        resetInput,
         notion,
-    };
+    }), [appState, settings, activeDatabaseSchema, isConnected, addConnection, removeConnection, setActiveDatabaseId, updateAiSetting, handleAddFiles, handleRemoveFile, setProcessedContent, resetInput, notion, setCurrentPage]);
 
     return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };
