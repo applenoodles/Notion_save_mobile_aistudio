@@ -108,7 +108,7 @@ export const ContentInputPage = () => {
                 </div>
             </div>
 
-            <div className={`card ${!settings.activeDatabaseId ? 'disabled' : ''}`}>
+            <div className={`card`}>
                  <ContentInputCard
                     inputText={fileHandler.inputText} setInputText={fileHandler.setInputText}
                     inputFiles={fileHandler.inputFiles} handleAddFiles={fileHandler.handleAddFiles} handleRemoveFile={fileHandler.handleRemoveFile}
