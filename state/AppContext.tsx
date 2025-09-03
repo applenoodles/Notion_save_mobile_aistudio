@@ -93,6 +93,7 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
     };
 
     // Effect to fetch schema and create a default content object when active database changes
+    // Effect to fetch schema and create a default content object when active database changes
     useEffect(() => {
         const fetchActiveSchema = async () => {
             if (settings.activeDatabaseId) {
@@ -101,8 +102,9 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
                     const schema = await notion.handleFetchSchema(activeConnection.notionApiKey, activeConnection.notionDatabaseId, true);
                     setActiveDatabaseSchema(schema);
 
-                    // If schema is fetched, create a default processedContent object
-                    if (schema) {
+                    // If schema is fetched, AND there isn't already processed content, create a default object.
+                    // This prevents overwriting the AI result with a blank form.
+                    if (schema && !appState.processedContent) {
                         const defaultContent: ProcessedContentData = { pageContent: { summaryTitle: '', summaryBody: '', takeaways: [] } };
                         for (const key in schema) {
                             const prop = schema[key];
@@ -134,7 +136,7 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
                             }
                         }
                         setProcessedContent(defaultContent);
-                    } else {
+                    } else if (!schema) {
                         setProcessedContent(null);
                     }
                 } else {
@@ -147,7 +149,7 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
             }
         };
         fetchActiveSchema();
-    }, [settings.activeDatabaseId, settings.connections, notion, setProcessedContent]);
+    }, [settings.activeDatabaseId, settings.connections, notion, setProcessedContent, appState.processedContent]);
 
     const isConnected = settings.connections.length > 0 && !!settings.activeDatabaseId;
 
