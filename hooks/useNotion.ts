@@ -4,10 +4,11 @@
  */
 
 import { useCallback, useMemo } from "react";
-import { DatabaseSchema, ProcessedContentData, Settings, DatabaseConnection } from "../types";
+import { DatabaseSchema, ProcessedContentData, DatabaseConnection } from "../types";
 import { AppDispatch } from "../state/appReducer";
 import { CORS_PROXY_URL, NOTION_API_VERSION, handleNotionApiCall } from "../utils/api";
 import { createParagraphBlocks } from "../utils/notion";
+import { formatFileSize, getFileEmoji } from "../utils/formatters";
 
 const buildNotionProperties = (content: ProcessedContentData, schema: DatabaseSchema) => {
     const properties: Record<string, any> = {};
@@ -67,19 +68,60 @@ const buildNotionPageBlocks = (content: ProcessedContentData, originalText: stri
         { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ type: 'text', text: { content: 'Key Takeaways' } }] } },
         ...pageContent.takeaways.map(item => ({ object: 'block', type: 'bulleted_list_item', bulleted_list_item: { rich_text: [{ type: 'text', text: { content: item } }] } })),
     ];
-    if (originalText) { children.push(dividerBlock, { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ text: { content: 'Original Text' } }] } }, ...createParagraphBlocks(originalText)); }
+
+    if (originalText) {
+        children.push(
+            dividerBlock,
+            { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ text: { content: 'Original Text' } }] } }, 
+            ...createParagraphBlocks(originalText)
+        );
+    }
+
     if (originalFiles.length > 0) {
         children.push(dividerBlock, { object: 'block', type: 'heading_2', heading_2: { rich_text: [{ text: { content: 'Original Files' } }] } });
+        
         originalFiles.forEach((file, index) => {
             const url = publicUrls[index];
-            if (url) { // If upload was successful and we have a public URL
+            const fileInfoChildren: any[] = [];
+
+            if (url) {
+                // Add preview for images and PDFs inside the toggle
                 if (file.type.startsWith('image/')) {
-                    children.push({ object: 'block', type: 'image', image: { type: 'external', external: { url } } });
+                    fileInfoChildren.push({ object: 'block', type: 'image', image: { type: 'external', external: { url } } });
                 } else if (file.type === 'application/pdf') {
-                    children.push({ object: 'block', type: 'embed', embed: { url } });
-                } else {
-                    children.push({ object: 'block', type: 'file', file: { type: 'external', external: { url }, name: file.name } });
+                    fileInfoChildren.push({ object: 'block', type: 'pdf', pdf: { type: 'external', external: { url } } });
                 }
+
+                // Add the detailed callout block inside the toggle
+                fileInfoChildren.push({
+                    object: 'block',
+                    type: 'callout',
+                    callout: {
+                        icon: { type: 'emoji', emoji: getFileEmoji(file.type) },
+                        color: 'gray_background',
+                        rich_text: [
+                            { type: 'text', text: { content: `File Name: ${file.name}\n` } },
+                            { type: 'text', text: { content: `File Size: ${formatFileSize(file.size)}\n` } },
+                            { type: 'text', text: { content: `Content Type: ${file.type}\n` } },
+                            { type: 'text', text: { content: 'Download Link: ' } },
+                            { type: 'text', text: { content: 'Click here', link: { url } }, annotations: { bold: true, color: 'blue' } },
+                        ]
+                    }
+                });
+
+                // Create the main toggle block
+                children.push({
+                    object: 'block',
+                    type: 'toggle',
+                    toggle: {
+                        rich_text: [{
+                            type: 'text',
+                            text: { content: `${getFileEmoji(file.type)} ${file.name}` }
+                        }],
+                        children: fileInfoChildren,
+                    }
+                });
+
             } else { // Fallback if upload failed
                 children.push({ object: 'block', type: 'callout', callout: { rich_text: [{ type: 'text', text: { content: `Analyzed file (upload failed): ${file.name}` } }], icon: { emoji: '📎' } } });
             }
@@ -115,7 +157,7 @@ export const useNotion = (dispatch: AppDispatch) => {
         databaseSchema: DatabaseSchema,
         inputText: string, 
         inputFiles: File[], 
-        publicUrls: (string | null)[] // Accept the public URLs
+        publicUrls: (string | null)[]
     ) => {
         dispatch({ type: 'SET_STATUS', payload: 'uploadingNotion' });
 
