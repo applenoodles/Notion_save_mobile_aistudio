@@ -92,7 +92,7 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
         dispatch({ type: 'RESET_MESSAGES' });
     };
 
-    // Effect to fetch schema when active database changes
+    // Effect to fetch schema and create a default content object when active database changes
     useEffect(() => {
         const fetchActiveSchema = async () => {
             if (settings.activeDatabaseId) {
@@ -100,15 +100,54 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
                 if (activeConnection) {
                     const schema = await notion.handleFetchSchema(activeConnection.notionApiKey, activeConnection.notionDatabaseId, true);
                     setActiveDatabaseSchema(schema);
+
+                    // If schema is fetched, create a default processedContent object
+                    if (schema) {
+                        const defaultContent: ProcessedContentData = { pageContent: { summaryTitle: '', summaryBody: '', takeaways: [] } };
+                        for (const key in schema) {
+                            const prop = schema[key];
+                            switch (prop.type) {
+                                case 'title':
+                                case 'rich_text':
+                                case 'url':
+                                case 'email':
+                                case 'phone_number':
+                                    defaultContent[key] = '';
+                                    break;
+                                case 'number':
+                                    defaultContent[key] = null;
+                                    break;
+                                case 'checkbox':
+                                    defaultContent[key] = false;
+                                    break;
+                                case 'select':
+                                    defaultContent[key] = prop.select.options[0]?.name || null;
+                                    break;
+                                case 'multi_select':
+                                    defaultContent[key] = [];
+                                    break;
+                                case 'date':
+                                    defaultContent[key] = null;
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }
+                        setProcessedContent(defaultContent);
+                    } else {
+                        setProcessedContent(null);
+                    }
                 } else {
                     setActiveDatabaseSchema(null);
+                    setProcessedContent(null);
                 }
             } else {
                 setActiveDatabaseSchema(null);
+                setProcessedContent(null);
             }
         };
         fetchActiveSchema();
-    }, [settings.activeDatabaseId, settings.connections, notion]);
+    }, [settings.activeDatabaseId, settings.connections, notion, setProcessedContent]);
 
     const isConnected = settings.connections.length > 0 && !!settings.activeDatabaseId;
 
