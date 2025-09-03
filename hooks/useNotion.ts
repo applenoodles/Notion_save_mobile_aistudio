@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useCallback } from "react";
+import { useCallback, useMemo } from "react";
 import { DatabaseSchema, ProcessedContentData, Settings, DatabaseConnection } from "../types";
 import { AppDispatch } from "../state/appReducer";
 import { CORS_PROXY_URL, NOTION_API_VERSION, handleNotionApiCall } from "../utils/api";
