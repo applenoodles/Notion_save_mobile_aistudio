@@ -28,13 +28,17 @@ export const OutputPreview = memo(({ processedContent, setProcessedContent, file
     const pageContent = processedContent.pageContent || { summaryTitle: '', summaryBody: '', takeaways: [] };
 
     const handleFieldChange = (key: string, value: any) => {
+        console.log('[OutputPreview] handleFieldChange called', { key, value });
         const newContent = { ...processedContent, [key]: value };
+        console.log('[OutputPreview] Setting new processed content:', newContent);
         setProcessedContent(newContent);
     };
 
     const handlePageContentChange = (key: keyof PageContent, value: any) => {
+        console.log('[OutputPreview] handlePageContentChange called', { key, value });
         const currentContent = processedContent.pageContent || { summaryTitle: '', summaryBody: '', takeaways: [] };
         const newContent = { ...processedContent, pageContent: { ...currentContent, [key]: value } };
+        console.log('[OutputPreview] Setting new processed content:', newContent);
         setProcessedContent(newContent);
     };
 

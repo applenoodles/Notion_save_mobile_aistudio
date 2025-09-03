@@ -94,6 +94,7 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
 
     // Effect to fetch schema and reset content ONLY when the active database changes.
     useEffect(() => {
+        console.log('%c[AppContext] DB Switch Effect RUNNING', 'color: red; font-weight: bold;', { activeDbId: settings.activeDatabaseId });
         const fetchAndSetDefaults = async () => {
             // First, clear any previous schema and content
             setActiveDatabaseSchema(null);
@@ -107,6 +108,7 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
 
                     // If schema is fetched successfully, create a default blank content object
                     if (schema) {
+                        console.log('[AppContext] Effect is creating a blank form.');
                         const defaultContent: ProcessedContentData = { pageContent: { summaryTitle: '', summaryBody: '', takeaways: [] } };
                         for (const key in schema) {
                             const prop = schema[key];
