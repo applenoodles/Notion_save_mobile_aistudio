@@ -25,6 +25,7 @@ export default async function handler(
     // We pass it directly to the `put` function.
     const blob = await put(filename, request, {
       access: 'public',
+      addRandomSuffix: true, // Ensure unique filenames for uploads
     });
 
     // Respond with the blob object, which includes the public URL.
