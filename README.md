@@ -1,116 +1,76 @@
 # Intellectual Notion Save
 
-"Intellectual Notion Save" is a web application designed to streamline the process of capturing, processing, and organizing information into Notion. Users can input text or upload files, have the content intelligently processed by an AI, and then automatically save the structured output to a specified Notion database.
+An intelligent Progressive Web App (PWA) to process files and text with AI and save structured notes directly to your Notion database.
 
-## ✨ Key Features
+This application allows users to connect to their Notion workspace, select a database, and use AI (Google Gemini or any OpenRouter model) to analyze and structure content. It supports various file formats, preserves user input between sessions, and can be installed on mobile devices to act as a native share target.
 
-- **Flexible Content Input**: Supports both direct text input and file uploads.
-- **AI-Powered Processing**: Utilizes a powerful language model to analyze, summarize, or transform your content based on a customizable system prompt.
-- **Seamless Notion Integration**: Connects directly to your Notion workspace to fetch databases and save content.
-- **Customizable Settings**:
-    - **Notion**: Configure your Notion API key and select the target database.
-    - **AI**: Adjust the AI model, temperature, and define a system prompt to control the output format and style.
-- **Live Preview**: Review the AI-generated output before saving it to Notion.
-- **State Persistence**: All your settings are saved locally in your browser for a seamless experience.
+## ✨ Features
 
-## 🚀 Tech Stack
+- **AI-Powered Content Processing**: Leverages AI models to analyze content and extract structured information based on your Notion database schema.
+- **Multi-Format File Parsing**: Natively parses text from `.docx`, `.xlsx`, `.pptx`, `.txt`, and `.md` files directly in the browser before sending to the AI.
+- **Notion Integration**: Connects directly to your Notion workspace to fetch database schemas and create new pages.
+- **PWA & Mobile Share Target**: Installable on mobile devices and can receive files directly from the OS share sheet.
+- **Persistent State**: User-inputted text, selected files, and processed content are preserved when navigating between pages.
+- **Secure Local Settings**: Stores Notion and AI API keys, as well as database connections, in the browser's `localStorage`.
+
+## 🛠️ Tech Stack
 
 - **Frontend**: React, Vite, TypeScript
-- **Styling**: CSS
-- **State Management**: React Context API with `useReducer`
-- **Backend API**: Vercel Serverless Functions
-- **AI**: OpenAI (or compatible) API
-- **Deployment**: Vercel
+- **Deployment & Backend**: Vercel (including Serverless Functions)
+- **File Storage**: Vercel Blob
+- **Core APIs**: Notion API, Google Gemini / OpenRouter API
+- **File Parsing**: `mammoth.js` (for .docx), `xlsx` (for .xlsx), `jszip` (for .pptx)
 
-## 📦 Project Structure
+## 📂 Project Structure & File Guide
 
-```
-/
-├── api/                    # Vercel Serverless Functions
-│   └── uploadFile.ts       # Backend logic for AI processing
-├── components/             # Reusable React components
-├── hooks/                  # Custom React hooks for business logic
-│   ├── useAI.ts            # Logic for interacting with the AI API
-│   ├── useNotion.ts        # Logic for interacting with the Notion API
-│   └── useSettings.ts      # Logic for managing application state
-├── pages/                  # Application pages/views
-├── public/                 # Static assets
-├── state/                  # Global state management (Context & Reducer)
-│   ├── AppContext.tsx
-│   └── appReducer.ts
-├── utils/                  # Utility functions
-│   ├── api.ts
-│   ├── file.ts
-│   ├── notion.ts
-│   └── prompts.ts
-├── App.tsx                 # Main application component
-├── index.tsx               # Application entry point
-└── package.json            # Project dependencies and scripts
-```
+This guide provides an overview of the key files and directories in the project.
 
-## ⚙️ Getting Started
+#### `api/`
+- **`uploadFile.ts`**: A Vercel Serverless Function that acts as the backend. It receives a file from the frontend, securely uploads it to Vercel Blob storage, and returns its public URL. It includes logic to handle duplicate filenames by adding a random suffix.
 
-### Prerequisites
+#### `components/`
+- **`NavigationMenu.tsx`**: Renders the main top-left navigation menu and handles the enabled/disabled state of links based on application state (e.g., if a database is connected).
+- **`ContentInputCard.tsx`**: The main UI card for user input, containing the text area and the DropZone.
+- **`DropZone.tsx`**: A dedicated component for handling file drag-and-drop and file selection.
+- **`OutputPreview.tsx`**: A complex component that displays the AI-processed results. It dynamically renders fields based on the Notion database schema and allows the user to manually edit the results before uploading.
+- **`SettingsCard.tsx` / `AiSettingsCard.tsx`**: UI components related to the settings page.
 
-- Node.js (v18 or later)
-- A Vercel account for deployment (or local Vercel CLI)
-- A Notion account and an [internal integration token](https://www.notion.so/my-integrations)
-- An OpenAI API key (or from a compatible provider)
+#### `hooks/`
+- **`useAI.ts`**: Contains all logic for communicating with AI APIs (Gemini and OpenRouter). It builds the appropriate prompts and schema definitions for the AI.
+- **`useNotion.ts`**: Manages all communication with the Notion API. It fetches database schemas and contains the logic to build and create new Notion pages with the final content, including embedded files and links.
+- **`useSettings.ts`**: A hook for managing persistent user settings (API keys, database connections) by saving to and loading from the browser's `localStorage`.
 
-### Installation & Setup
+#### `pages/`
+- **`ContentInputPage.tsx`**: The main page for content input and processing. It composes the `ContentInputCard` and `OutputPreview` components and orchestrates the main user workflow.
+- **`SettingsPage.tsx`**: The page where users can manage their Notion database connections and configure AI provider settings.
+- **`SystemPromptPage.tsx`**: A page for users to view or edit the system prompt sent to the AI.
 
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    cd intellectual_notion_save
-    ```
+#### `public/`
+- **`manifest.webmanifest`**: The PWA manifest file. It defines the app's name, icons, and critically, the `share_target` configuration that allows it to appear in the mobile share sheet.
+- **`sw.js`**: The Service Worker file. It intercepts the `fetch` event for the share target, extracts the shared files, and sends them to the main application.
+- **`icon-*.png`**: Application icons for the PWA.
 
-2.  **Install dependencies:**
-    ```bash
-    npm install
-    ```
+#### `state/`
+- **`appReducer.ts`**: Defines the shape of the global state (`AppState`), all possible state-changing actions (`AppAction`), and the main reducer function (`appStateReducer`) that calculates state changes.
+- **`AppContext.tsx`**: The heart of the application. It uses the `appReducer` to create a global state provider. It centralizes all application logic, including state, state-modifying functions, and file upload handling, making this data available to the entire component tree.
 
-3.  **Environment Variables:**
-    The backend API (`api/uploadFile.ts`) requires an API key for the AI service. For Vercel deployment, set this as an environment variable in your Vercel project settings.
+#### `utils/`
+- **`api.ts`**: Contains a helper function (`handleNotionApiCall`) for Notion API requests, which prepends a CORS proxy URL.
+- **`file.ts`**: Contains the crucial `fileToGenerativePart` utility, which inspects a file's MIME type and uses the appropriate library (`mammoth`, `xlsx`, `jszip`) to extract its text content before it's sent to the AI.
+- **`formatters.ts`**: Helper functions for formatting data for the UI, such as `formatFileSize` and `getFileEmoji`.
+- **`notion.ts`**: Utilities for constructing Notion block objects.
+- **`prompts.ts`**: Contains the default system prompt for the AI.
 
-    - `VITE_OPENAI_API_KEY`: Your OpenAI API key.
+#### Root Files
+- **`App.tsx`**: The top-level React component. It renders the `NavigationMenu` and the current page based on the global state.
+- **`index.tsx`**: The application's entry point. It renders the `App` component and registers the Service Worker.
 
-    *Note: The Notion API key is currently managed through the application's UI and stored in `localStorage`. See "Potential Bugs & Improvements" for more details.*
+## ⚙️ Local Development
 
-### Running Locally
+1.  **Clone the repository.**
+2.  **Install dependencies:** `npm install`
+3.  **Run the development server:** `npm run dev`
 
-To run the development server:
+## 🚀 Deployment
 
-```bash
-npm run dev
-```
-
-The application will be available at `http://localhost:5173`.
-
-### Deployment
-
-The project is set up for easy deployment on Vercel. Simply connect your Git repository to a new Vercel project. Vercel will automatically detect the Vite configuration and deploy the application and the serverless function.
-
-## 🐞 Potential Bugs & Improvements
-
-Here are some potential issues and areas for improvement identified during the analysis:
-
-1.  **Security Risk with API Key Handling**:
-    - **Issue**: The Notion API key is stored in the browser's `localStorage` and sent with each request from the client. Exposing sensitive keys on the client-side is a significant security risk.
-    - **Recommendation**: The Notion API key should be managed exclusively on the server-side. The frontend should make requests to a dedicated backend endpoint, which then uses the key (stored as a secure environment variable) to communicate with the Notion API.
-
-2.  **Error Handling**:
-    - **Issue**: The application's error handling could be more robust. For example, if an API call to the AI service or Notion fails, the user may not receive clear, actionable feedback.
-    - **Recommendation**: Implement a global error notification system (e.g., using toasts) to display meaningful error messages. Add more specific `try...catch` blocks around all `fetch` calls.
-
-3.  **User Experience (UX)**:
-    - **Issue**: There is a lack of loading indicators during asynchronous operations like fetching Notion databases, processing content with AI, or saving the output. This can make the application feel unresponsive.
-    - **Recommendation**: Add loading spinners or disable buttons during these operations to provide clear visual feedback to the user.
-
-4.  **Large File Processing**:
-    - **Issue**: The `api/uploadFile.ts` function appears to read the entire file into memory. This can cause timeouts or memory limit exceptions on serverless platforms when handling large files.
-    - **Recommendation**: For larger files, consider implementing a streaming approach for uploads and processing.
-
-5.  **Hardcoded AI Model**:
-    - **Issue**: The AI model seems to be hardcoded in the backend function. While there's a setting for the model in the UI, the backend might not be dynamically using it.
-    - **Recommendation**: Ensure that the model selected by the user in the frontend is correctly passed to and used by the `api/uploadFile.ts` function when making the call to the AI provider.
+This project is configured for continuous deployment on Vercel. Every push to the `main` branch will automatically trigger a new build and deployment.
