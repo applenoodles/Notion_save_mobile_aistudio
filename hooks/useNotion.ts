@@ -136,8 +136,8 @@ export const useNotion = (dispatch: AppDispatch) => {
         }
     }, [dispatch]);
 
-    return {
+    return useMemo(() => ({
         handleFetchSchema,
         uploadToNotion,
-    };
+    }), [handleFetchSchema, uploadToNotion]);
 };
