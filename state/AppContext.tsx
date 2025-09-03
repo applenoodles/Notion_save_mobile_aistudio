@@ -92,19 +92,21 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
         dispatch({ type: 'RESET_MESSAGES' });
     };
 
-    // Effect to fetch schema and create a default content object when active database changes
-    // Effect to fetch schema and create a default content object when active database changes
+    // Effect to fetch schema and reset content ONLY when the active database changes.
     useEffect(() => {
-        const fetchActiveSchema = async () => {
+        const fetchAndSetDefaults = async () => {
+            // First, clear any previous schema and content
+            setActiveDatabaseSchema(null);
+            dispatch({ type: 'SET_PROCESSED_CONTENT', payload: null });
+
             if (settings.activeDatabaseId) {
                 const activeConnection = settings.connections.find(c => c.id === settings.activeDatabaseId);
                 if (activeConnection) {
                     const schema = await notion.handleFetchSchema(activeConnection.notionApiKey, activeConnection.notionDatabaseId, true);
                     setActiveDatabaseSchema(schema);
 
-                    // If schema is fetched, AND there isn't already processed content, create a default object.
-                    // This prevents overwriting the AI result with a blank form.
-                    if (schema && !appState.processedContent) {
+                    // If schema is fetched successfully, create a default blank content object
+                    if (schema) {
                         const defaultContent: ProcessedContentData = { pageContent: { summaryTitle: '', summaryBody: '', takeaways: [] } };
                         for (const key in schema) {
                             const prop = schema[key];
@@ -135,21 +137,13 @@ export const AppProvider: React.FC<{children: React.ReactNode}> = ({ children })
                                     break;
                             }
                         }
-                        setProcessedContent(defaultContent);
-                    } else if (!schema) {
-                        setProcessedContent(null);
+                        dispatch({ type: 'SET_PROCESSED_CONTENT', payload: defaultContent });
                     }
-                } else {
-                    setActiveDatabaseSchema(null);
-                    setProcessedContent(null);
                 }
-            } else {
-                setActiveDatabaseSchema(null);
-                setProcessedContent(null);
             }
         };
-        fetchActiveSchema();
-    }, [settings.activeDatabaseId, settings.connections, notion, setProcessedContent, appState.processedContent]);
+        fetchAndSetDefaults();
+    }, [settings.activeDatabaseId, settings.connections, notion, dispatch]);
 
     const isConnected = settings.connections.length > 0 && !!settings.activeDatabaseId;
 
